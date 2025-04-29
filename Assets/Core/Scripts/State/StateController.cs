@@ -1,0 +1,77 @@
+using UnityEngine;
+using System.Collections.Generic;
+using System;
+public class StateController
+{
+    public IState CurrentState { get; private set; }
+    public Type CurrentType { get; private set; }
+    private Dictionary<Type, IState> states;
+
+    private event Action<IState> stateChanged;
+
+    public StateController(Dictionary<Type, IState> stateList)
+    {
+        states = stateList;
+    }
+
+    public StateController()
+    {
+        states = new Dictionary<Type, IState>();
+    }
+
+    public void LoadStateList(Dictionary<Type, IState> stateList)
+    {
+        states = stateList;
+    }
+
+    // set the starting state
+    public void Initialize(IState state)
+    {
+        CurrentState = state;
+        state.Enter();
+
+        // notify other objects that state has changed
+        stateChanged?.Invoke(state);
+    }
+
+
+    // exit this state and enter another
+    public void TransitionTo(Type nextState)
+    {
+        if (!states.ContainsKey(nextState))
+        {
+            return;
+        }
+        CurrentState?.Exit();
+        CurrentState = states[nextState];
+        CurrentState?.Enter();
+
+
+        // notify other objects that state has changed
+        stateChanged?.Invoke(CurrentState);
+    }
+
+    // allow the StateMachine to update this state
+    public void Update()
+    {
+        if (CurrentState != null)
+        {
+            CurrentState.OnCheckCondition();
+        }
+    }
+
+    public void Addlistener(Action<IState> callback)
+    {
+        stateChanged += callback;
+    }
+
+    public void RemoveListener(Action<IState> callback)
+    {
+        stateChanged -= callback;
+    }
+
+    public void ClearListener()
+    {
+        stateChanged = null;
+    }
+}
